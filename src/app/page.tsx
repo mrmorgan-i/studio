@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -39,8 +40,30 @@ export default function PhotoPoetPage() {
       });
       setPoem(result.poem);
     } catch (e: any) {
-      console.error("Error generating poem:", e);
-      setError(e.message || "An unexpected error occurred while generating the poem.");
+      // Log the full error to the server console (visible in Vercel logs)
+      console.error("Error during poem generation (raw object):", e);
+
+      let displayMessage = "Sorry, we couldn't generate your poem right now. The AI service might be busy or experiencing issues. Please try again in a little while.";
+
+      if (e && typeof e.message === 'string' && e.message) {
+        // Log the specific message received by the client (could be generic in prod)
+        console.error("Error message received by client from server action: ", e.message);
+        
+        // In development, show the raw error message for easier debugging
+        if (process.env.NODE_ENV === 'development') {
+          displayMessage = `Dev: ${e.message}`;
+        } else {
+            // In production, if the message seems to be the generic Next.js one,
+            // our custom message is better. If it's a specific one (e.g. "model overloaded"),
+            // our custom message is still a good user-facing summary.
+            if (e.message.toLowerCase().includes("overloaded") || e.message.toLowerCase().includes("unavailable")) {
+                 displayMessage = "The AI model is currently overloaded or unavailable. Please try again in a few moments.";
+            }
+            // Otherwise, stick to the polite generic message crafted above.
+        }
+      }
+      
+      setError(displayMessage);
       setPoem(null);
     } finally {
       setIsLoading(false);
